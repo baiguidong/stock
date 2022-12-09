@@ -1,0 +1,8 @@
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\bin\Debug\bgd.exe.config
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\bin\Debug\bgd.exe
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\bin\Debug\bgd.pdb
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Debug\bgd.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Debug\bgd.exe
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Debug\bgd.pdb
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Debug\bgd.MainForm.resources
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Debug\bgd.csproj.GenerateResource.Cache

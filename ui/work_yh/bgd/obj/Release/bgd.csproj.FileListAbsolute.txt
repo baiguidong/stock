@@ -1,0 +1,39 @@
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\bin\Release\bgd.exe.config
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\bin\Release\bgd.exe
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Release\bgd.MainForm.resources
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\Users\Administrator\Documents\SharpDevelop Projects\bgd\bgd\obj\Release\bgd.exe
+C:\work\bgd\obj\Release\bgd.MainForm.resources
+C:\work\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\work\bgd\obj\Release\bgd.exe
+C:\work\bgd\bin\Release\bgd.exe.config
+C:\work\bgd\bin\Release\bgd.exe
+C:\work\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\work\bgd\bin\Release\bgd.exe.config
+C:\Users\Administrator\Desktop\work\bgd\bin\Release\bgd.exe
+C:\Users\Administrator\Desktop\work\bgd\obj\Release\bgd.MainForm.resources
+C:\Users\Administrator\Desktop\work\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\Users\Administrator\Desktop\work\bgd\obj\Release\bgd.exe
+D:\工具\v1\work\bgd\bin\Release\bgd.exe.config
+D:\工具\v1\work\bgd\bin\Release\bgd.exe
+D:\工具\v1\work\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+D:\工具\v1\work\bgd\obj\Release\bgd.MainForm.resources
+D:\工具\v1\work\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+D:\工具\v1\work\bgd\obj\Release\bgd.exe
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\obj\Release\bgd.MainForm.resources
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\obj\Release\bgd.exe
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\bin\Release\bgd.exe.config
+C:\Users\Administrator\Desktop\src\bgd\c#\work\bgd\bin\Release\bgd.exe
+C:\soft\src\bgd\c#\work\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+C:\soft\src\bgd\c#\work\bgd\obj\Release\bgd.MainForm.resources
+C:\soft\src\bgd\c#\work\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\soft\src\bgd\c#\work\bgd\obj\Release\bgd.exe
+C:\soft\src\bgd\c#\work_yh\bgd\bin\Release\bgd.exe.config
+C:\soft\src\bgd\c#\work_yh\bgd\bin\Release\bgd.exe
+C:\soft\src\bgd\c#\work_yh\bgd\obj\Release\bgd.csprojResolveAssemblyReference.cache
+C:\soft\src\bgd\c#\work_yh\bgd\obj\Release\bgd.MainForm.resources
+C:\soft\src\bgd\c#\work_yh\bgd\obj\Release\bgd.csproj.GenerateResource.Cache
+C:\soft\src\bgd\c#\work_yh\bgd\obj\Release\bgd.exe
