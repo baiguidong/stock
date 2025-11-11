@@ -1,0 +1,35 @@
+{
+  "comment": "上证分时图预测系统 - 配置文件",
+
+  "data": {
+    "comment": "数据文件路径配置",
+    "daily_data_path": "data/日线.txt",
+    "m1_data_path": "data/M1.txt",
+    "history_data_dir": "data",
+    "output_dir": "~/临时结果"
+  },
+
+  "image": {
+    "comment": "图像生成参数配置",
+    "width": 600,
+    "height": 300,
+    "line_width": 2,
+    "qualified_color": "#FFFFFF",
+    "unqualified_color": "#FF0000"
+  },
+
+  "calculation": {
+    "comment": "计算参数配置",
+    "modulo": 8,
+    "trading_minutes": 240,
+    "morning_end_minute": 120,
+    "max_offset_days": 15
+  },
+
+  "display": {
+    "comment": "显示参数配置",
+    "images_per_row": 40,
+    "show_offset": true,
+    "show_stats": true
+  }
+}
