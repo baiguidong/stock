@@ -1,6 +1,31 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
+
+// FeatureSet 特征值集合
+// 包含OHLC四个价格的特征值
+type FeatureSet struct {
+	Open  int `json:"open"`  // 开盘价特征值
+	High  int `json:"high"`  // 最高价特征值
+	Low   int `json:"low"`   // 最低价特征值
+	Close int `json:"close"` // 收盘价特征值
+}
+
+// String 返回特征值的字符串表示
+func (fs FeatureSet) String() string {
+	return fmt.Sprintf("%d-%d-%d-%d", fs.Open, fs.High, fs.Low, fs.Close)
+}
+
+// Equals 判断两个特征值是否相等
+func (fs FeatureSet) Equals(other FeatureSet) bool {
+	return fs.Open == other.Open &&
+		fs.High == other.High &&
+		fs.Low == other.Low &&
+		fs.Close == other.Close
+}
 
 // StockData 单根K线数据
 // 包含单根K线的完整信息：日期、时间、开高低收价格以及高低点标记

@@ -55,43 +55,6 @@ type PredictResponse struct {
 	ProcessTime  float64        `json:"process_time"`  // 处理时间（秒）
 }
 
-// FeatureSet 特征值集合
-// 存储开高低收的特征值（1-8）
-type FeatureSet struct {
-	Open  int `json:"open"`  // 开盘特征
-	High  int `json:"high"`  // 最高特征
-	Low   int `json:"low"`   // 最低特征
-	Close int `json:"close"` // 收盘特征
-}
-
-// String 返回特征集的字符串表示
-func (f FeatureSet) String() string {
-	return fmt.Sprintf("[开:%d 高:%d 低:%d 收:%d]", f.Open, f.High, f.Low, f.Close)
-}
-
-// Equals 判断两个特征集是否相等
-func (f FeatureSet) Equals(other FeatureSet) bool {
-	return f.Open == other.Open &&
-		f.High == other.High &&
-		f.Low == other.Low &&
-		f.Close == other.Close
-}
-
-// MatchOpen 判断开盘特征是否匹配
-func (f FeatureSet) MatchOpen(other FeatureSet) bool {
-	return f.Open == other.Open
-}
-
-// MatchClose 判断收盘特征是否匹配
-func (f FeatureSet) MatchClose(other FeatureSet) bool {
-	return f.Close == other.Close
-}
-
-// MatchOpenClose 判断开盘和收盘特征是否都匹配
-func (f FeatureSet) MatchOpenClose(other FeatureSet) bool {
-	return f.MatchOpen(other) && f.MatchClose(other)
-}
-
 // DataStatistics 数据统计信息
 type DataStatistics struct {
 	DailyDataCount    int      `json:"daily_data_count"`    // 日线数据数量
@@ -113,6 +76,3 @@ type ErrorResponse struct {
 	Success bool   `json:"success"` // 总是false
 	Error   string `json:"error"`   // 错误信息
 }
-
-// 需要导入fmt包
-import "fmt"
