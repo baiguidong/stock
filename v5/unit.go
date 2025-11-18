@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -9,7 +10,9 @@ import (
 	"image/jpeg"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -116,16 +119,16 @@ func (c ass) Swap(i, j int) {
 // 	return c.data[i].osjl < c.data[j].osjl
 // }
 
-func get_m1(day string, offset int) *seds {
+func get_m1(day string, offset int) (*seds, error) {
 	if offset >= 240 {
 		fmt.Println("ERR:偏移错误 ", offset)
-		os.Exit(-1)
+		return nil, errors.New("ERR:偏移错误")
 	}
 
 	m1 := g_map_m1.m_map[day]
 	if m1 == nil {
 		fmt.Println("ERR:获取数据失败", day)
-		os.Exit(-1)
+		return nil, errors.New("ERR:获取数据失败")
 	}
 	var before_m1 *seds
 	if offset > 0 && offset < 240 {
@@ -184,7 +187,7 @@ func get_m1(day string, offset int) *seds {
 		num++
 		xl++
 	}
-	return m
+	return m, nil
 }
 
 // 输出当前日期 偏移的点(没参与计算，x从0 开始)
@@ -301,10 +304,15 @@ type sds_2 struct {
 }
 
 func open_pic(name string) {
-	cmd := fmt.Sprintf("%s rundll32.exe  C:/windows/system/shimgvw.dll", name)
-	_, err := Runcmd(cmd)
-	if err != nil {
-		fmt.Println(err.Error())
+	if runtime.GOOS == "darwin" {
+		cmd := exec.Command("open", name)
+		cmd.Start() // 不阻塞
+	} else {
+		cmd := fmt.Sprintf("%s rundll32.exe  C:/windows/system/shimgvw.dll", name)
+		_, err := Runcmd(cmd)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 }
 
@@ -321,7 +329,6 @@ func load_data() {
 		if v1 == "data/日线.txt" {
 			continue
 		}
-		fmt.Println(v1)
 		f, err := os.Open(v1)
 		if err != nil {
 			continue
@@ -536,8 +543,9 @@ func (g *G_map) add_data(k, tm string, dk, dg, dd, ds float64) {
 	}
 }
 
-func load_M1() {
-	d, err := ioutil.ReadFile("data/M1.txt")
+func load_M1() string {
+	lastday := ""
+	d, err := os.ReadFile("data/M1.txt")
 	if err == nil {
 		v2 := strings.Split(string(d), "\n")
 		for _, v3 := range v2 {
@@ -566,11 +574,11 @@ func load_M1() {
 				if len(vs1) == 2 {
 					g_map_m1.add_data(format_tm(vs1[0]), vs1[1], a2, a3, a4, a5)
 				}
-
+				lastday = format_tm(vs1[0])
 			}
 		}
-
 	}
+	return lastday
 }
 
 func test_hz(text, text1, fname string) {
