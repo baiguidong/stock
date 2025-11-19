@@ -2,10 +2,7 @@
 package main
 
 import (
-	"image"
-	"image/color"
-	"image/draw"
-	"image/png"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -14,20 +11,9 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
-
-type CustomTheme struct {
-	fyne.Theme
-}
-
-func (c CustomTheme) ButtonColor() color.Color {
-	return color.White
-}
-
-func (c CustomTheme) HoverColor() color.Color {
-	return color.RGBA{230, 230, 230, 255} // 按钮 hover 时的灰色
-}
 
 // Params holds all the UI parameters (可扩展)
 type Params struct {
@@ -45,36 +31,12 @@ type Params struct {
 	LastUpdated string `json:"last_updated"`
 }
 
-// createSampleImage 创建一个示例 PNG，用来演示“输出原图/新图”等操作
-func createSampleImage(path string, w, h int, bg color.RGBA, title string) error {
-	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	// 背景
-	draw.Draw(img, img.Bounds(), &image.Uniform{bg}, image.Point{}, draw.Src)
-	// 在左上角画一些条纹来模拟“线条”
-	for i := 0; i < 10; i++ {
-		for x := 0; x < w; x++ {
-			y := (i*20 + 5) % h
-			img.Set(x, (y+i)%h, color.RGBA{255, 255, 255, 30})
-		}
-	}
-	// 写入文件
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if err := png.Encode(f, img); err != nil {
-		return err
-	}
-	return nil
-}
-
 var select_day *widget.Entry
 var select_status *widget.Label
 
 func main() {
-
 	a := app.New()
+	a.Settings().SetTheme(theme.LightTheme())
 	w := a.NewWindow("比对工具")
 	w.Resize(fyne.NewSize(520, 420))
 	// ---- 状态条 ----
@@ -112,7 +74,7 @@ func main() {
 	lineEntry := widget.NewEntry()
 	lineEntry.SetText("3")
 	countEntry := widget.NewEntry()
-	countEntry.SetText("5")
+	countEntry.SetText("100")
 
 	// 局图：宽 高 线
 	localWidth := widget.NewEntry()
@@ -123,15 +85,21 @@ func main() {
 	localline.SetText("20")
 
 	// 输出/智能按钮
-	btnOut1 := widget.NewButton("输出原图", nil)
+	btnOut1 := widget.NewButton("全数据计算", nil)
+	btnOut1.Importance = widget.HighImportance
+	btnOut2 := widget.NewButton("多组计算", nil)
+	btnOut2.Importance = widget.HighImportance
 
 	// 统一按钮最小宽度（让界面看着整齐）
 	minBtnWidth := float32(160)
 	btnOut1.Resize(fyne.NewSize(minBtnWidth, 64))
+	btnOut2.Resize(fyne.NewSize(minBtnWidth, 64))
 
 	buttonRow1 := container.NewHBox(
 		layout.NewSpacer(),
 		btnOut1,
+		layout.NewSpacer(),
+		btnOut2,
 		layout.NewSpacer(),
 	)
 
@@ -175,13 +143,17 @@ func main() {
 	}
 
 	// 生成图片并保存（用于输出按钮）
-	generateAndSaveImage := func(title string) {
+	generateAndSaveImage := func(signal int) {
 		p, _ := collectParams()
+		if signal == 0 {
+			p.Offset2 = 0
+		}
 		g_msg <- "正在生成: "
 		ui_start(p)
 	}
 
-	btnOut1.OnTapped = func() { generateAndSaveImage("输出原图") }
+	btnOut1.OnTapped = func() { generateAndSaveImage(0) }
+	btnOut2.OnTapped = func() { generateAndSaveImage(1) }
 
 	// ---- 美化布局 ----
 	// 左标签列宽（固定）与右控件排列更像 WinForm
@@ -221,12 +193,12 @@ func main() {
 	card := container.NewVBox(
 		form,
 		widget.NewSeparator(),
+		layout.NewSpacer(),
 	)
 
 	// 最后组合
 	content := container.NewVBox(
 		card,
-		widget.NewSeparator(),
 		buttonRow1,
 		layout.NewSpacer(),
 		select_status,
@@ -236,6 +208,75 @@ func main() {
 	padded := container.New(layout.NewVBoxLayout(), container.NewPadded(content))
 
 	w.SetContent(padded)
-	go Init()
+	go Init_UI()
 	w.ShowAndRun()
+}
+
+func Init_UI() {
+	go func() {
+		for {
+			value, ok := <-g_msg
+			if !ok {
+				break // channel 已关闭，退出循环
+			}
+			if select_status != nil {
+				fyne.Do(func() {
+					{
+						select_status.SetText(value)
+					}
+				})
+			}
+		}
+	}()
+	verticalImages = []string{}
+	load_data()
+	g_msg <- fmt.Sprintf("历史数据:%d天\n", len(g_map.m_map))
+
+	lastDay := load_M1()
+	fmt.Println(lastDay)
+	g_msg <- fmt.Sprintf("M1数据:%d天\n", len(g_map_m1.m_map))
+	load_day()
+	g_msg <- fmt.Sprintf("日线数据:%d\n", len(days))
+	fyne.Do(func() {
+		select_day.SetText(lastDay)
+	})
+}
+func ui_start(param *Params) {
+	os.RemoveAll("tmp")
+	os.Mkdir("tmp", 0777)
+	new_data = ass{}
+
+	g_height = param.Height
+	g_width = param.Width
+	g_xt = param.LineWidth
+	g_num = 40
+	g_ks = param.LocalWidth
+	g_gs = param.LocalHeight
+	g_local_vline = param.LocalLine
+	g_day = param.Date
+	g_offset_start = param.Offset1
+	g_offset_end = param.Offset2
+	g_local = param.Local
+	imageNums = param.Count
+
+	if g_height > 0 {
+		h_head = g_height / 2
+	}
+
+	if g_offset_end <= g_offset_start {
+		g_offset_end = g_offset_start
+	}
+	verticalImages = []string{}
+	// g_offset_start -> g_offset_end 所有offset
+	for i := g_offset_start; i <= g_offset_end; i++ {
+		// 计算逻辑
+		run_offset(i)
+	}
+
+	g_msg <- "正在生成照片,请稍等..."
+	generate_vimages()
+	g_msg <- "正在合成成照片,请稍等..."
+	generate_result()
+	g_msg <- "完成"
+	os.RemoveAll("tmp")
 }

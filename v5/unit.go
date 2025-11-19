@@ -9,6 +9,8 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io/ioutil"
+	"log"
+	"math"
 	"os"
 	"os/exec"
 	"os/user"
@@ -19,6 +21,8 @@ import (
 
 	"github.com/disintegration/imaging"
 	"github.com/golang/freetype"
+	"github.com/shakinm/xlsReader/xls"
+	"github.com/shakinm/xlsReader/xls/structure"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/text"
@@ -26,6 +30,57 @@ import (
 )
 
 func load_day() {
+	if Isexist("data/日线.xls") {
+		workbook, err := xls.OpenFile("data/日线.xls")
+		if err != nil {
+			log.Fatalf("打开 XLS 文件失败: %v", err)
+		}
+
+		// 遍历第一个 sheet（你可以遍历所有）
+		sheet, err := workbook.GetSheet(0)
+		if err != nil {
+			log.Fatalf("获取 Sheet 失败: %v", err)
+		}
+
+		for i := 1; i <= int(sheet.GetNumberRows()); i++ {
+			row, err := sheet.GetRow(i)
+			if err != nil {
+				continue
+			}
+			if row == nil {
+				continue
+			}
+			day, err := row.GetCol(0)
+			if err != nil {
+				continue
+			}
+			if strings.Trim(day.GetString(), " ") == "" {
+				break
+			}
+			day_tm, _ := parseExcelDateTime(day)
+
+			open, err := row.GetCol(1)
+			if err != nil {
+				continue
+			}
+			high, err := row.GetCol(2)
+			if err != nil {
+				continue
+			}
+			low, err := row.GetCol(3)
+			if err != nil {
+				continue
+			}
+			close, err := row.GetCol(4)
+			if err != nil {
+				continue
+			}
+			ss := sed{dy: day_tm.Format("2006-01-02"), dk: open.GetFloat64(), dg: high.GetFloat64(), dd: low.GetFloat64(), ds: close.GetFloat64()}
+			days = append(days, ss)
+		}
+		return
+	}
+
 	d, err := os.ReadFile("data/日线.txt")
 	if err == nil {
 		v2 := strings.Split(string(d), "\n")
@@ -316,58 +371,137 @@ func open_pic(name string) {
 	}
 }
 
+func load_xls(v1 string) {
+	v1_cache := strings.Replace(v1, "data/", "data/cache/", -1)
+	// cache 文件
+	v1_cache = strings.Replace(v1_cache, ".xls", ".csv", -1)
+	if Isexist(v1_cache) {
+		load_csv(v1_cache)
+		return
+	}
+
+	workbook, err := xls.OpenFile(v1)
+	if err != nil {
+		log.Fatalf("打开 XLS 文件失败: %v", err)
+	}
+	// 遍历第一个 sheet（你可以遍历所有）
+	sheet, err := workbook.GetSheet(0)
+	if err != nil {
+		log.Fatalf("获取 Sheet 失败: %v", err)
+	}
+	os.MkdirAll("data/cache", 0777)
+	file, err := os.Create(v1_cache)
+	if err != nil {
+		fmt.Println("创建文件时出错:", err)
+		return
+	}
+	defer file.Close() // 确保在程序结束前关闭文件
+
+	for i := 1; i <= int(sheet.GetNumberRows()); i++ {
+		if i%1000 == 0 {
+			g_msg <- fmt.Sprintf("正在加载数据 %s-%d", v1, i)
+		}
+		row, err := sheet.GetRow(i)
+		if err != nil {
+			continue
+		}
+
+		day, err := row.GetCol(0)
+		if err != nil {
+			continue
+		}
+		if strings.Trim(day.GetString(), " ") == "" {
+			break
+		}
+		day_str, _ := parseExcelDate(day)
+		tm, err := row.GetCol(1)
+		if err != nil {
+			continue
+		}
+		tm_str := parseExcelTime(tm)
+
+		open, err := row.GetCol(2)
+		if err != nil {
+			continue
+		}
+		high, err := row.GetCol(3)
+		if err != nil {
+			continue
+		}
+		low, err := row.GetCol(4)
+		if err != nil {
+			continue
+		}
+		close, err := row.GetCol(5)
+		if err != nil {
+			continue
+		}
+		day_str_csv := strings.ReplaceAll(day_str, "-", "/")
+		file.WriteString(fmt.Sprintf("%s,%s,%g,%g,%g,%g\n", day_str_csv, tm_str, open.GetFloat64(), high.GetFloat64(), low.GetFloat64(), close.GetFloat64()))
+		g_map.add_data(day_str, tm_str, open.GetFloat64(), high.GetFloat64(), low.GetFloat64(), close.GetFloat64())
+	}
+}
+func load_csv(v1 string) {
+	f, err := os.Open(v1)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	buf := bufio.NewReader(f)
+
+	for {
+		v3, err := buf.ReadString('\n')
+		if err == nil {
+			v3 = strings.Replace(v3, "\r", "", -1)
+			v3 = strings.Replace(v3, "\n", "", -1)
+			v3 = strings.Replace(v3, " ", "", -1)
+			vs := strings.Split(v3, ",")
+			if len(vs) >= 6 {
+				a2, err := strconv.ParseFloat(vs[2], 10)
+				if err != nil {
+					continue
+				}
+				a3, err := strconv.ParseFloat(vs[3], 10)
+				if err != nil {
+					continue
+				}
+				a4, err := strconv.ParseFloat(vs[4], 10)
+				if err != nil {
+					continue
+				}
+				a5, err := strconv.ParseFloat(vs[5], 10)
+				if err != nil {
+					continue
+				}
+				g_map.add_data(format_tm(vs[0]), vs[1], a2, a3, a4, a5)
+			}
+		} else {
+			break
+		}
+	}
+}
 func load_data() {
 	v, err := List_file("data", "", 9999)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(0)
 	}
+
 	for _, v1 := range v {
-		if v1 == "data/M1.txt" {
+		g_msg <- fmt.Sprintf("正在加载数据 %s", v1)
+		if v1 == "data/M1.txt" || v1 == "data/M1.xls" {
 			continue
 		}
-		if v1 == "data/日线.txt" {
+		if v1 == "data/日线.txt" || v1 == "data/日线.xls" {
 			continue
 		}
-		f, err := os.Open(v1)
-		if err != nil {
-			continue
-		}
-		defer f.Close()
-
-		buf := bufio.NewReader(f)
-
-		for {
-			v3, err := buf.ReadString('\n')
-
-			if err == nil {
-				v3 = strings.Replace(v3, "\r", "", -1)
-				v3 = strings.Replace(v3, "\n", "", -1)
-				v3 = strings.Replace(v3, " ", "", -1)
-				vs := strings.Split(v3, ",")
-				if len(vs) >= 6 {
-
-					a2, err := strconv.ParseFloat(vs[2], 10)
-					if err != nil {
-						continue
-					}
-					a3, err := strconv.ParseFloat(vs[3], 10)
-					if err != nil {
-						continue
-					}
-					a4, err := strconv.ParseFloat(vs[4], 10)
-					if err != nil {
-						continue
-					}
-					a5, err := strconv.ParseFloat(vs[5], 10)
-					if err != nil {
-						continue
-					}
-					g_map.add_data(format_tm(vs[0]), vs[1], a2, a3, a4, a5)
-				}
-			} else {
-				break
-			}
+		if strings.HasSuffix(v1, ".xls") {
+			load_xls(v1)
+			g_msg <- fmt.Sprintf("加载完成 %s", v1)
+		} else {
+			load_csv(v1)
+			g_msg <- fmt.Sprintf("加载完成 %s", v1)
 		}
 	}
 }
@@ -545,36 +679,84 @@ func (g *G_map) add_data(k, tm string, dk, dg, dd, ds float64) {
 
 func load_M1() string {
 	lastday := ""
-	d, err := os.ReadFile("data/M1.txt")
-	if err == nil {
-		v2 := strings.Split(string(d), "\n")
-		for _, v3 := range v2 {
-			v3 = strings.Replace(v3, "\r", "", -1)
-			v3 = strings.Replace(v3, " ", "", -1)
-			vs := strings.Split(v3, "\t")
-			if len(vs) >= 5 {
-				a2, err := strconv.ParseFloat(vs[1], 10)
-				if err != nil {
-					continue
-				}
-				a3, err := strconv.ParseFloat(vs[2], 10)
-				if err != nil {
-					continue
-				}
-				a4, err := strconv.ParseFloat(vs[3], 10)
-				if err != nil {
-					continue
-				}
-				a5, err := strconv.ParseFloat(vs[4], 10)
-				if err != nil {
-					continue
-				}
+	if Isexist("data/M1.xls") {
+		workbook, err := xls.OpenFile("data/M1.xls")
+		if err != nil {
+			log.Fatalf("打开 XLS 文件失败: %v", err)
+		}
+		// 遍历第一个 sheet（你可以遍历所有）
+		sheet, err := workbook.GetSheet(0)
+		if err != nil {
+			log.Fatalf("获取 Sheet 失败: %v", err)
+		}
+		for i := 1; i <= int(sheet.GetNumberRows()); i++ {
+			row, err := sheet.GetRow(i)
+			if err != nil {
+				continue
+			}
+			day, err := row.GetCol(0)
+			if err != nil {
+				continue
+			}
+			day_str := strings.Trim(day.GetString(), " ")
+			if day_str == "" {
+				break
+			}
+			day_tm, _ := parseExcelDateTime(day)
 
-				vs1 := strings.Split(vs[0], "-")
-				if len(vs1) == 2 {
-					g_map_m1.add_data(format_tm(vs1[0]), vs1[1], a2, a3, a4, a5)
+			open, err := row.GetCol(1)
+			if err != nil {
+				continue
+			}
+			high, err := row.GetCol(2)
+			if err != nil {
+				continue
+			}
+			low, err := row.GetCol(3)
+			if err != nil {
+				continue
+			}
+			close, err := row.GetCol(4)
+			if err != nil {
+				continue
+			}
+
+			g_map_m1.add_data(day_tm.Format("2006-01-02"), day_tm.Format("15:04"), open.GetFloat64(), high.GetFloat64(), low.GetFloat64(), close.GetFloat64())
+			lastday = day_tm.Format("2006-01-02")
+		}
+		return lastday
+	} else {
+		d, err := os.ReadFile("data/M1.txt")
+		if err == nil {
+			v2 := strings.Split(string(d), "\n")
+			for _, v3 := range v2 {
+				v3 = strings.Replace(v3, "\r", "", -1)
+				v3 = strings.Replace(v3, " ", "", -1)
+				vs := strings.Split(v3, "\t")
+				if len(vs) >= 5 {
+					a2, err := strconv.ParseFloat(vs[1], 10)
+					if err != nil {
+						continue
+					}
+					a3, err := strconv.ParseFloat(vs[2], 10)
+					if err != nil {
+						continue
+					}
+					a4, err := strconv.ParseFloat(vs[3], 10)
+					if err != nil {
+						continue
+					}
+					a5, err := strconv.ParseFloat(vs[4], 10)
+					if err != nil {
+						continue
+					}
+
+					vs1 := strings.Split(vs[0], "-")
+					if len(vs1) == 2 {
+						g_map_m1.add_data(format_tm(vs1[0]), vs1[1], a2, a3, a4, a5)
+					}
+					lastday = format_tm(vs1[0])
 				}
-				lastday = format_tm(vs1[0])
 			}
 		}
 	}
@@ -1136,3 +1318,67 @@ func data_deal_jb_2(d1, d2 plotter.XYs, jb int) (plotter.XYs, plotter.XYs) {
 // 	}
 // 	return d3
 // }
+
+var excelBase = time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local)
+
+func parseExcelTime(cell structure.CellData) string {
+	// timeLayouts := []string{
+	// 	"15:04",
+	// 	"15:04:05",
+	// }
+	// for _, layout := range timeLayouts {
+	// 	if t, err := time.ParseInLocation(layout, cell.GetString(), time.Local); err == nil {
+	// 		return t.Format("15:04")
+	// 	}
+	// }
+	f := cell.GetFloat64()
+	seconds := math.Round(f * 86400)
+	h := int(seconds) / 3600
+	m := (int(seconds) % 3600) / 60
+	return fmt.Sprintf("%02d:%02d", h, m)
+}
+
+func parseExcelDateTime(cell structure.CellData) (time.Time, error) {
+	s := cell.GetString()
+	s = strings.Trim(s, " ")
+	layouts := []string{
+		"2006/01/02-15:04",
+		"2006/01/02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.ParseInLocation(layout, s, time.Local); err == nil {
+			return t, nil
+		}
+	}
+	f := cell.GetFloat64()
+	seconds := math.Round(f * 86400)
+	if f > 0 {
+		d := excelBase.Add(time.Duration(seconds * float64(time.Second)))
+		return d, nil
+	}
+	return time.Time{}, fmt.Errorf("无法解析日期/时间: %q", s)
+}
+func parseExcelDate(cell structure.CellData) (string, error) {
+	s := cell.GetString()
+	// s = strings.Trim(s, " ")
+	// layouts := []string{
+	// 	"2006/1/2",
+	// 	"2006-1-2",
+	// 	"1/2/2006",
+	// 	"1-2-2006",
+	// 	"2006/01/02",
+	// 	"2006-01-02",
+	// }
+	// for _, layout := range layouts {
+	// 	if t, err := time.ParseInLocation(layout, s, time.Local); err == nil {
+	// 		return t.Format("2006-01-02"), nil
+	// 	}
+	// }
+	f := cell.GetFloat64()
+	seconds := math.Round(f * 86400)
+	if f > 0 {
+		d := excelBase.Add(time.Duration(seconds * float64(time.Second)))
+		return d.Format("2006-01-02"), nil
+	}
+	return "", fmt.Errorf("无法解析日期/时间: %q", s)
+}

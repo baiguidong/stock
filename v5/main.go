@@ -7,7 +7,6 @@ import (
 
 	"os"
 
-	"fyne.io/fyne/v2"
 	"gonum.org/v1/plot/plotter"
 )
 
@@ -76,8 +75,13 @@ var g_msg chan string
 
 func init() {
 	g_msg = make(chan string)
+	g_dz = make(map[string]int)
+	g_map.init_data()
+	g_map_m1.init_data()
+	init_dz()
 }
 
+// 不引进 fyne 低版本编译问题
 func Init() {
 	go func() {
 		for {
@@ -85,30 +89,18 @@ func Init() {
 			if !ok {
 				break // channel 已关闭，退出循环
 			}
-			if select_status != nil {
-				fyne.Do(func() {
-					{
-						select_status.SetText(value)
-					}
-				})
-			}
+			fmt.Println(value)
 		}
 	}()
 	verticalImages = []string{}
-	g_dz = make(map[string]int)
-	g_map.init_data()
-	g_map_m1.init_data()
-	init_dz()
+
 	load_data()
 	g_msg <- fmt.Sprintf("历史数据:%d天\n", len(g_map.m_map))
 
-	lastDay := load_M1()
+	load_M1()
 	g_msg <- fmt.Sprintf("M1数据:%d天\n", len(g_map_m1.m_map))
 	load_day()
 	g_msg <- fmt.Sprintf("日线数据:%d\n", len(days))
-	fyne.Do(func() {
-		select_day.SetText(lastDay)
-	})
 }
 
 // ----------------------------
@@ -311,45 +303,6 @@ func run_offset(offset int) error {
 	return nil
 }
 
-func ui_start(param *Params) string {
-	os.RemoveAll("tmp")
-	os.Mkdir("tmp", 0777)
-	new_data = ass{}
-
-	g_height = param.Height
-	g_width = param.Width
-	g_xt = param.LineWidth
-	g_num = 40
-	g_ks = param.LocalWidth
-	g_gs = param.LocalHeight
-	g_local_vline = param.LocalLine
-	g_day = param.Date
-	g_offset_start = param.Offset1
-	g_offset_end = param.Offset2
-	g_local = param.Local
-	imageNums = param.Count
-
-	if g_height > 0 {
-		h_head = g_height / 2
-	}
-
-	if g_offset_end <= g_offset_start {
-		g_offset_end = g_offset_start
-	}
-	verticalImages = []string{}
-	// g_offset_start -> g_offset_end 所有offset
-	for i := g_offset_start; i <= g_offset_end; i++ {
-		// 计算逻辑
-		run_offset(i)
-	}
-
-	g_msg <- "正在生成照片,请稍等..."
-	generate_vimages()
-	g_msg <- "正在合成成照片,请稍等..."
-	generate_result()
-	os.RemoveAll("tmp")
-	return "完成"
-}
 func main_cli() {
 	ready()
 	if g_offset_end <= g_offset_start {
