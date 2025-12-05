@@ -340,16 +340,26 @@ func before_tm(day string) string {
 }
 
 type sds struct {
+	//dt 当天
 	//dt1 前一天
 	//dt2 后一天
-	dt1, dt2 plotter.XYs
+	dt, dt1, dt2 plotter.XYs
 	// dy 当天 dy_1 前一天 dy_2 后一天
 	dy, dy_1, dy_2 string
 	zh, fa         int
 	osjl           float64
 	py             int
 	sm             *seds
+	score          int
 }
+
+func (s *sds) computeScore() {
+	a := s.dt[179:]
+	fmt.Println(a)
+	b := s.dt1[179:]
+	fmt.Println(b)
+}
+
 type sds_2 struct {
 	dt1, dt2, dt3 plotter.XYs
 	n1, n2, n3    int

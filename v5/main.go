@@ -4,14 +4,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"sort"
 
 	"os"
-
-	"gonum.org/v1/plot/plotter"
 )
 
 var h_head = 0
-var g_src plotter.XYs
+
+// var g_src plotter.XYs
 
 // 时间
 var g_day_ *string = flag.String("day", "2020-02-04", "Use -day <2018-09-18>")
@@ -147,7 +147,7 @@ func run_offset(offset int) error {
 	m1.gd()
 	m1.zd()
 
-	g_src = CVPoints(m1)
+	g_src := CVPoints(m1)
 	get_p(g_src, fmt.Sprintf("tmp/%s_%d.png", g_day, offset), "")
 
 	if g_local > 0 {
@@ -295,6 +295,7 @@ func run_offset(offset int) error {
 	}
 	if hgzs > bhgzs {
 		for n, rs := range ads_all.data {
+			rs.dt = g_src
 			if n < imageNums {
 				new_data.data = append(new_data.data, rs)
 			}
@@ -350,10 +351,19 @@ func generate_result() {
 // 返回 竖向照片数组
 func generate_vimages() {
 	for n, rs := range new_data.data {
+		if rs.dy_1 == "2018-10-24" {
+			fmt.Println(rs.dt1[179:], rs.dt[179:])
+		}
+		new_data.data[n].score = Score(rs.dt1[179:], rs.dt[179:])
+	}
+	sort.Slice(new_data.data, func(i, j int) bool {
+		return new_data.data[i].score > new_data.data[j].score // 降序
+	})
+	for n, rs := range new_data.data {
 		get_p(rs.dt1, "tmp/"+rs.dy_1+".png", "")
 
-		ct := fmt.Sprintf("%d组 %d正 %d反", n+1, rs.zh, rs.fa)
-		ct2 := fmt.Sprintf("偏移(%d) %s", rs.py, rs.dy_1)
+		ct := fmt.Sprintf("%d组 %d正 %d反 分数(%d)", n+1, rs.zh, rs.fa, rs.score)
+		ct2 := fmt.Sprintf("偏移(%d)  %s", rs.py, rs.dy_1)
 		test_hz(ct, ct2, "tmp/"+rs.dy_1+"_h.png")
 
 		get_p(rs.dt2, "tmp/"+rs.dy_2+".png", "")
