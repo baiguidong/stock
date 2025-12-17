@@ -1,18 +1,169 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"sort"
 
 	"gonum.org/v1/plot/plotter"
 )
 
-// type XYs []XY
-
-// type XY struct{ X, Y float64 }
-
 type NewPoint struct {
 	X, Y float64
 	g, d int
+}
+
+// —— 工具函数：从 XYs 中计算所有高低点 ——
+func extractPoints(data plotter.XYs) []NewPoint {
+	n := len(data)
+	res := make([]NewPoint, 0)
+
+	for i := 0; i < n; i++ {
+		cur := data[i].Y
+		if i == 0 {
+			next := data[i+1].Y
+			if cur > next {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+					g: 1,
+				})
+			} else if cur < next {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+					d: 1,
+				})
+			} else {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+				})
+			}
+			continue
+		}
+		if i == n-1 {
+			prev := data[i-1].Y
+			if cur > prev {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+					g: 1,
+				})
+			} else if cur < prev {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+					d: 1,
+				})
+			} else {
+				res = append(res, NewPoint{
+					X: data[i].X,
+					Y: cur,
+				})
+			}
+			continue
+		}
+
+		prev := data[i-1].Y
+		next := data[i+1].Y
+
+		if cur > prev && cur > next { // 高点
+			res = append(res, NewPoint{
+				X: data[i].X,
+				Y: cur,
+				g: 1,
+			})
+		} else if cur < prev && cur < next { // 低点
+			res = append(res, NewPoint{
+				X: data[i].X,
+				Y: cur,
+				d: 1,
+			})
+		} else {
+			res = append(res, NewPoint{
+				X: data[i].X,
+				Y: cur,
+			})
+		}
+	}
+	return res
+}
+
+// —— 工具：从高低点里筛出高点
+func filterHigh(arr []NewPoint) []NewPoint {
+	res := make([]NewPoint, 0)
+	for _, v := range arr {
+		if v.g == 1 {
+			res = append(res, v)
+		}
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Y > res[j].Y // 降序
+	})
+	return res
+}
+
+// —— 工具：从高低点里筛出低点
+func filterLow(arr []NewPoint) []NewPoint {
+	res := make([]NewPoint, 0)
+	for _, v := range arr {
+		if v.d == 1 {
+			res = append(res, v)
+		}
+	}
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Y < res[j].Y // 升序
+	})
+	return res
+}
+
+// 输入点 points
+// 后面 N 个
+// 高点个数 countHigh
+// 低点个数 countLow
+func selectLastNHighLow(points []NewPoint, N int, countHigh int, countLow int) (hs, ls []NewPoint) {
+	n := len(points)
+	start := n - N
+	if start < 0 {
+		start = 0
+	}
+
+	seg := points[start:]
+
+	hsAll := filterHigh(seg)
+	lsAll := filterLow(seg)
+
+	if len(hsAll) > countHigh {
+		hs = hsAll[:countHigh]
+	} else {
+		hs = hsAll
+	}
+
+	if len(lsAll) > countLow {
+		ls = lsAll[:countLow]
+	} else {
+		ls = lsAll
+	}
+	return
+}
+
+// 前一天所有点
+// 高低点
+// high 匹配高点
+// low 匹配低点
+func matchNearby(points []NewPoint, x float64, high, low bool) bool {
+	for _, p := range points {
+		if math.Abs(p.X-x) <= 4 { // X 在 ±4 范围内即可认为匹配
+			if high && p.g == 1 {
+				return true
+			}
+			if low && p.d == 1 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // 参数 dt1 dt 为 61 个点（X 180-240）
@@ -29,143 +180,18 @@ type NewPoint struct {
 // 7.取dt 后30个点中2个低点,和 dt1 中附近位置（X 坐标 +4）和（X坐标 -4） 是否存在低点，是的话得分10
 
 func computeScore(dt1, dt plotter.XYs) (score int) {
-	// —— 工具函数：判断某个数组中是否存在 X 相差 ±4 的点 ——
-	matchNearby := func(points []NewPoint, x float64) bool {
-		for _, p := range points {
-			if math.Abs(p.X-x) <= 4 { // X 在 ±4 范围内即可认为匹配
-				return true
-			}
-		}
-		return false
-	}
-
-	// —— 工具函数：从 XYs 中计算所有高低点 ——
-	extractPoints := func(data plotter.XYs) []NewPoint {
-		n := len(data)
-		res := make([]NewPoint, 0)
-
-		for i := 0; i < n; i++ {
-			cur := data[i].Y
-			if i == 0 {
-				next := data[i+1].Y
-				if cur > next {
-					res = append(res, NewPoint{
-						X: data[i].X,
-						Y: cur,
-						g: 1,
-					})
-				}
-				if cur < next {
-					res = append(res, NewPoint{
-						X: data[i].X,
-						Y: cur,
-						d: 1,
-					})
-				}
-				continue
-			}
-			if i == n-1 {
-				prev := data[i-1].Y
-				if cur > prev {
-					res = append(res, NewPoint{
-						X: data[i].X,
-						Y: cur,
-						g: 1,
-					})
-				}
-				if cur < prev {
-					res = append(res, NewPoint{
-						X: data[i].X,
-						Y: cur,
-						d: 1,
-					})
-				}
-				continue
-			}
-
-			prev := data[i-1].Y
-			next := data[i+1].Y
-
-			if cur > prev && cur > next { // 高点
-				res = append(res, NewPoint{
-					X: data[i].X,
-					Y: cur,
-					g: 1,
-				})
-			} else if cur < prev && cur < next { // 低点
-				res = append(res, NewPoint{
-					X: data[i].X,
-					Y: cur,
-					d: 1,
-				})
-			}
-		}
-		return res
-	}
-
 	// —— 1. 提取 dt 和 dt1 中全部高低点 ——
 	dtPoints := extractPoints(dt)
 	dt1Points := extractPoints(dt1)
 
-	// —— 工具：从高低点里筛出高点 / 低点 ——
-	filterHigh := func(arr []NewPoint) []NewPoint {
-		res := make([]NewPoint, 0)
-		for _, v := range arr {
-			if v.g == 1 {
-				res = append(res, v)
-			}
-		}
-		return res
-	}
-	filterLow := func(arr []NewPoint) []NewPoint {
-		res := make([]NewPoint, 0)
-		for _, v := range arr {
-			if v.d == 1 {
-				res = append(res, v)
-			}
-		}
-		return res
-	}
-
-	// —— 工具：对后 N 个点取前 K 个高点 / 低点 ——
-	selectLastNHighLow := func(points []NewPoint, N int, countHigh int, countLow int) (hs, ls []NewPoint) {
-		n := len(points)
-		start := n - N
-		if start < 0 {
-			start = 0
-		}
-
-		seg := points[start:]
-
-		hsAll := filterHigh(seg)
-		lsAll := filterLow(seg)
-
-		if len(hsAll) > countHigh {
-			hs = hsAll[:countHigh]
-		} else {
-			hs = hsAll
-		}
-
-		if len(lsAll) > countLow {
-			ls = lsAll[:countLow]
-		} else {
-			ls = lsAll
-		}
-		return
-	}
-
-	// ——————————————————————————————
-	// 评分逻辑
-	// ——————————————————————————————
-
 	addScore := func(hs, ls []NewPoint, highScore, lowScore int) {
 		for _, h := range hs {
-			if matchNearby(dt1Points, h.X) {
+			if matchNearby(dt1Points, h.X, true, false) {
 				score += highScore
 			}
 		}
 		for _, l := range ls {
-			if matchNearby(dt1Points, l.X) {
+			if matchNearby(dt1Points, l.X, false, true) {
 				score += lowScore
 			}
 		}
@@ -174,15 +200,17 @@ func computeScore(dt1, dt plotter.XYs) (score int) {
 	// 2. 后 60 点：取 5 个高点、5 个低点，每个匹配得 5 分
 	hs60, ls60 := selectLastNHighLow(dtPoints, 60, 5, 5)
 	addScore(hs60, ls60, 5, 5)
+	fmt.Println("hs60:", hs60, ls60)
 
 	// 4. 后 40 点：2 个高点、2 个低点，每个匹配得 10 分
 	hs40, ls40 := selectLastNHighLow(dtPoints, 40, 2, 2)
 	addScore(hs40, ls40, 10, 10)
+	fmt.Println("hs40:", hs40, ls40)
 
-	// 6. 后 30 点：2 个高点、2 个低点，每个匹配得 10 分
+	//6. 后 30 点：2 个高点、2 个低点，每个匹配得 10 分
 	hs30, ls30 := selectLastNHighLow(dtPoints, 30, 2, 2)
 	addScore(hs30, ls30, 10, 10)
-
+	fmt.Println("hs30:", hs30, ls30)
 	return
 }
 
@@ -205,9 +233,9 @@ func splitSegments(dt plotter.XYs, seg int) []int {
 	res := make([]int, seg)
 	for i := 0; i < seg; i++ {
 		start := int(segSize * float64(i))
-		end := int(segSize * float64(i+1))
-		if end >= n {
-			end = n - 1
+		end := int(segSize*float64(i+1)) - 1
+		if start < 0 {
+			start = 0
 		}
 		res[i] = segType(dt[start].Y, dt[end].Y)
 	}
@@ -271,6 +299,7 @@ func computeScoreSeg(dt1, dt plotter.XYs) (score int) {
 
 		// 对比 + 计分
 		score += compareSegs(segA, segB, segScore)
+
 	}
 
 	return

@@ -229,20 +229,17 @@ func segType(a, b float64) int {
 
 // 把 XYs 分 n 段，返回每段的 涨/跌/平 结果
 func splitSegments(dt XYs, seg int) []int {
-
 	n := len(dt)
-	fmt.Println("splitSegments:", n, seg)
 	segSize := float64(n) / float64(seg)
 
 	res := make([]int, seg)
 	for i := 0; i < seg; i++ {
-		start := int(segSize*float64(i)) - 1
+		start := int(segSize * float64(i))
 		end := int(segSize*float64(i+1)) - 1
 		if start < 0 {
 			start = 0
 		}
 		res[i] = segType(dt[start].Y, dt[end].Y)
-		fmt.Println("segType:", start, end, res[i])
 	}
 	return res
 }
@@ -255,7 +252,6 @@ func compareSegs(a, b []int, scorePerSeg int) int {
 			score += scorePerSeg
 		}
 	}
-	fmt.Println(score)
 	return score
 }
 
@@ -352,11 +348,8 @@ func PrintXYsForExcel(xs []NewPoint) {
 		fmt.Printf("%v\t%v\t%v\t%v\n", v.X, v.Y, v.g, v.d)
 	}
 }
+
 func main() {
-	PrintXYsForExcel(extractPoints(dt1))
-	fmt.Println("===>")
-	PrintXYsForExcel(extractPoints(dt))
-	//computeScore(dt1, dt)
 	score := computeScore(dt1, dt)
 	fmt.Println(score)
 	score = computeScoreSeg(dt1, dt)
